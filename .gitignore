@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# App data (the live, user-populated database) — keep the folder, not the data
+data/*.csv
+
+# Streamlit secrets & OS / editor cruft
+.streamlit/secrets.toml
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,19 @@
+[project]
+name = "customer-sentiment-analysis"
+version = "1.0.0"
+description = "A Streamlit dashboard for customer-review sentiment, emotion, keyword and phrase analytics, built as a layered, swappable NLP pipeline."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Aadhavan Alakan", email = "aadhavanalakan97@gmail.com" }]
+keywords = ["streamlit", "nlp", "sentiment-analysis", "textblob", "dashboard", "mlops"]
+dependencies = [
+    "matplotlib>=3.10.9",
+    "numpy>=2.4.6",
+    "pandas>=3.0.3",
+    "plotly>=6.8.0",
+    "streamlit>=1.58.0",
+    "streamlit-option-menu>=0.4.0",
+    "textblob>=0.20.0",
+    "wordcloud>=1.9.6",
+]
