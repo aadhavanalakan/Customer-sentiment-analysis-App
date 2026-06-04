@@ -17,6 +17,8 @@ touching the analytics or UI.
 > Sentiment is computed with a **noun-corrected TextBlob** model — fast, private,
 > fully offline, and transparent. No API keys, no data leaves your machine.
 
+![Overview dashboard](docs/overview.png)
+
 ---
 
 ## Features
@@ -50,6 +52,18 @@ touching the analytics or UI.
   exact matching reviews, each with a CSV download.
 - **Caching** — model (`@st.cache_resource`) and analysis (`@st.cache_data`) are
   cached for fast, reproducible reruns.
+
+---
+
+## Screenshots
+
+| Sentiment | Emotions |
+| --- | --- |
+| ![Sentiment page](docs/sentiment.png) | ![Emotions page](docs/emotions.png) |
+
+**Reviews — top positive / neutral / negative + praise vs. complaints**
+
+![Reviews page](docs/reviews.png)
 
 ---
 
