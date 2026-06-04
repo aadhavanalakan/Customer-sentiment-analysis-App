@@ -1,5 +1,11 @@
 # Customer Sentiment Analysis
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://aadhavanalakan-customer-sentiment-analysis-app-app-fyfpik.streamlit.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+
+**🔴 Live demo:** <https://aadhavanalakan-customer-sentiment-analysis-app-app-fyfpik.streamlit.app>
+
 A single-page **Streamlit** dashboard that turns a CSV of customer reviews into
 sentiment, emotion, keyword and phrase analytics — with interactive drill-downs
 and one-click CSV export of any subset.
