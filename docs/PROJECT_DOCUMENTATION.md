@@ -200,7 +200,4 @@ re-opening in a loop.
 - **Shipping has its own gotchas.** GitHub device-flow auth, Streamlit Cloud's **ephemeral storage**
   (added reviews don't persist across reboots), and keeping the live data file out of version
   control were all real-world deployment lessons.
-
-**Future work:** swap TextBlob for VADER or a fine-tuned transformer via the existing interface;
-move persistence from CSV to SQLite; make the scraper resilient to layout changes; cache analysis
 per-dataset for faster cold starts.
