@@ -5,6 +5,7 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 
 **🔴 Live demo:** <https://aadhavanalakan-customer-sentiment-analysis-app-app-fyfpik.streamlit.app>
+**📄 Project write-up:** [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)
 
 A single-page **Streamlit** dashboard that turns a CSV of customer reviews into
 sentiment, emotion, keyword and phrase analytics — with interactive drill-downs
