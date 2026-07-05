@@ -29,6 +29,7 @@ import plotly.graph_objects as go
 from textblob import TextBlob
 from wordcloud import WordCloud
 from streamlit_option_menu import option_menu
+from xquik_import import detect_review_text_column, prepare_reviews
 
 # ============================================================================
 # 1. CONFIG
@@ -515,8 +516,7 @@ if "reviews" not in st.session_state:
 # 7. SERVING  (Streamlit UI)
 # ============================================================================
 def detect_column(df):
-    lens = {c: df[c].astype(str).str.len().mean() for c in df.columns}
-    return max(lens, key=lens.get)
+    return detect_review_text_column(df)
 
 LOGO_HTML = """
 <div style="display:flex;align-items:center;gap:11px;margin:2px 0 6px 0;">
@@ -538,16 +538,21 @@ LOGO_HTML = """
 with st.sidebar:
     st.markdown(LOGO_HTML, unsafe_allow_html=True)
     st.markdown("---")
-    up = st.file_uploader("Upload reviews", type=["csv"])
+    up = st.file_uploader("Upload reviews or Xquik export", type=["csv"])
     if up is not None:
         st.success(f"✓ {up.name} ready — click **Load dataset**")
         raw = pd.read_csv(up)
         raw.columns = [c.strip() for c in raw.columns]
-        chosen = detect_column(raw)          # auto-detect the longest-text column
+        chosen = detect_column(raw)          # prefer known review/comment headers
+        if chosen is None:
+            st.warning("No review, comment, text, or Tweet Text column found.")
         if st.button("Load dataset"):
-            set_reviews(raw[chosen].dropna().astype(str).tolist())
-            st.session_state.source = up.name
-            st.rerun()
+            try:
+                set_reviews(prepare_reviews(raw))
+                st.session_state.source = up.name
+                st.rerun()
+            except ValueError as error:
+                st.warning(str(error))
     if st.session_state.reviews:
         if st.button("Clear database"):
             set_reviews([])
