@@ -19,17 +19,15 @@
 
 import os
 import re
-import datetime
 from collections import Counter
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from textblob import TextBlob
 from wordcloud import WordCloud
 from streamlit_option_menu import option_menu
-from xquik_import import detect_review_text_column, prepare_reviews
+from xquik_import import detect_review_text_column, prepare_reviews, read_review_csv
 
 # ============================================================================
 # 1. CONFIG
@@ -541,18 +539,21 @@ with st.sidebar:
     up = st.file_uploader("Upload reviews or Xquik export", type=["csv"])
     if up is not None:
         st.success(f"✓ {up.name} ready — click **Load dataset**")
-        raw = pd.read_csv(up)
-        raw.columns = [c.strip() for c in raw.columns]
-        chosen = detect_column(raw)          # prefer known review/comment headers
-        if chosen is None:
-            st.warning("No review, comment, text, or Tweet Text column found.")
-        if st.button("Load dataset"):
-            try:
-                set_reviews(prepare_reviews(raw))
-                st.session_state.source = up.name
-                st.rerun()
-            except ValueError as error:
-                st.warning(str(error))
+        try:
+            raw = read_review_csv(up)
+        except ValueError as error:
+            st.warning(str(error))
+        else:
+            chosen = detect_column(raw)      # prefer known review/comment headers
+            if chosen is None:
+                st.warning("No review, comment, text, or Tweet Text column found.")
+            if st.button("Load dataset"):
+                try:
+                    set_reviews(prepare_reviews(raw))
+                    st.session_state.source = up.name
+                    st.rerun()
+                except ValueError as error:
+                    st.warning(str(error))
     if st.session_state.reviews:
         if st.button("Clear database"):
             set_reviews([])
@@ -682,8 +683,11 @@ if nav == "Overview":
         ("Avg Polarity", f"{avg_pol:.2f}", "−1 to +1", COL["pos"] if avg_pol > POS_T else COL["neg"] if avg_pol < NEG_T else COL["neu"]),
         ("Avg Subjectivity", f"{avg_subj:.2f}", "0 factual · 1 opinion", "#0f172a"),
     ]
-    for col_, (l, v, s, cl) in zip(c, cards):
-        col_.markdown(metric_card(l, v, s, cl), unsafe_allow_html=True)
+    for col_, (label, value, subtitle, color) in zip(c, cards):
+        col_.markdown(
+            metric_card(label, value, subtitle, color),
+            unsafe_allow_html=True,
+        )
     st.markdown("<br>", unsafe_allow_html=True)
 
     left, right = st.columns([1, 1])
@@ -772,12 +776,15 @@ elif nav == "Sentiment":
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     c = st.columns(4)
-    for col_, (l, v, s, cl) in zip(c, [
+    for col_, (label, value, subtitle, color) in zip(c, [
         ("Positive", f"{pct['Positive']:.1f}%", f"{counts['Positive']} reviews", COL["pos"]),
         ("Neutral", f"{pct['Neutral']:.1f}%", f"{counts['Neutral']} reviews", COL["neu"]),
         ("Negative", f"{pct['Negative']:.1f}%", f"{counts['Negative']} reviews", COL["neg"]),
         ("Avg Length", f"{df.length.mean():.0f}", "words / review", "#0f172a")]):
-        col_.markdown(metric_card(l, v, s, cl), unsafe_allow_html=True)
+        col_.markdown(
+            metric_card(label, value, subtitle, color),
+            unsafe_allow_html=True,
+        )
 
 # ===================== WORDS =====================
 elif nav == "Words":

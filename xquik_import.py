@@ -50,6 +50,20 @@ def detect_review_text_column(raw_df: pd.DataFrame) -> str | None:
     return max(average_lengths, key=average_lengths.get)
 
 
+def read_review_csv(source: object) -> pd.DataFrame:
+    """Read a review CSV and report expected upload errors clearly."""
+    try:
+        raw_df = pd.read_csv(source)
+    except (
+        UnicodeDecodeError,
+        pd.errors.EmptyDataError,
+        pd.errors.ParserError,
+    ) as error:
+        raise ValueError("CSV must be a non-empty, valid UTF-8 file.") from error
+    raw_df.columns = [str(column).strip() for column in raw_df.columns]
+    return raw_df
+
+
 def prepare_reviews(raw_df: pd.DataFrame) -> list[str]:
     text_column = detect_review_text_column(raw_df)
     if text_column is None:
