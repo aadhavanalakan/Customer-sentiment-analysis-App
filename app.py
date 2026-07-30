@@ -19,16 +19,22 @@
 
 import os
 import re
-import datetime
 from collections import Counter
 
-import numpy as np
 import pandas as pd
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
+from streamlit_option_menu import option_menu
 from textblob import TextBlob
 from wordcloud import WordCloud
-from streamlit_option_menu import option_menu
+
+from xquik_import import (
+    detect_review_text_column,
+    escape_review_html,
+    export_review_csv,
+    prepare_reviews,
+    read_review_csv,
+)
 
 # ============================================================================
 # 1. CONFIG
@@ -515,8 +521,7 @@ if "reviews" not in st.session_state:
 # 7. SERVING  (Streamlit UI)
 # ============================================================================
 def detect_column(df):
-    lens = {c: df[c].astype(str).str.len().mean() for c in df.columns}
-    return max(lens, key=lens.get)
+    return detect_review_text_column(df)
 
 LOGO_HTML = """
 <div style="display:flex;align-items:center;gap:11px;margin:2px 0 6px 0;">
@@ -538,16 +543,24 @@ LOGO_HTML = """
 with st.sidebar:
     st.markdown(LOGO_HTML, unsafe_allow_html=True)
     st.markdown("---")
-    up = st.file_uploader("Upload reviews", type=["csv"])
+    up = st.file_uploader("Upload reviews or Xquik export", type=["csv"])
     if up is not None:
         st.success(f"✓ {up.name} ready — click **Load dataset**")
-        raw = pd.read_csv(up)
-        raw.columns = [c.strip() for c in raw.columns]
-        chosen = detect_column(raw)          # auto-detect the longest-text column
-        if st.button("Load dataset"):
-            set_reviews(raw[chosen].dropna().astype(str).tolist())
-            st.session_state.source = up.name
-            st.rerun()
+        try:
+            raw = read_review_csv(up)
+        except ValueError as error:
+            st.warning(str(error))
+        else:
+            chosen = detect_column(raw)      # prefer known review/comment headers
+            if chosen is None:
+                st.warning("No review, comment, text, or Tweet Text column found.")
+            if st.button("Load dataset"):
+                try:
+                    set_reviews(prepare_reviews(raw))
+                    st.session_state.source = up.name
+                    st.rerun()
+                except ValueError as error:
+                    st.warning(str(error))
     if st.session_state.reviews:
         if st.button("Clear database"):
             set_reviews([])
@@ -555,7 +568,10 @@ with st.sidebar:
             st.rerun()
         st.download_button(
             "⬇  Download database",
-            data=pd.DataFrame({"review": st.session_state.reviews}).to_csv(index=False),
+            data=export_review_csv(
+                pd.DataFrame({"review": st.session_state.reviews}),
+                text_column="review",
+            ),
             file_name="sentiment_database.csv",
             mime="text/csv",
         )
@@ -637,12 +653,16 @@ def show_reviews(heading, matched):
         return
     st.caption(f"{len(matched):,} review(s)")
     out = matched[["text", "sentiment", "polarity", "subjectivity"]]
-    st.download_button("⬇  Download these reviews (CSV)", out.to_csv(index=False),
-                       file_name="reviews_subset.csv", mime="text/csv",
-                       use_container_width=True)
+    st.download_button(
+        "⬇  Download these reviews (CSV)",
+        export_review_csv(out, text_column="text"),
+        file_name="reviews_subset.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
     st.markdown("---")
     for _, r in matched.sort_values("polarity").iterrows():
-        txt = (r["text"][:400] + "…") if len(r["text"]) > 400 else r["text"]
+        txt = escape_review_html(r["text"], max_length=400)
         bg = ("#ecfdf5" if r["sentiment"] == "Positive"
               else "#fff1f2" if r["sentiment"] == "Negative" else "#f8fafc")
         st.markdown(
@@ -677,8 +697,11 @@ if nav == "Overview":
         ("Avg Polarity", f"{avg_pol:.2f}", "−1 to +1", COL["pos"] if avg_pol > POS_T else COL["neg"] if avg_pol < NEG_T else COL["neu"]),
         ("Avg Subjectivity", f"{avg_subj:.2f}", "0 factual · 1 opinion", "#0f172a"),
     ]
-    for col_, (l, v, s, cl) in zip(c, cards):
-        col_.markdown(metric_card(l, v, s, cl), unsafe_allow_html=True)
+    for col_, (label, value, subtitle, color) in zip(c, cards):
+        col_.markdown(
+            metric_card(label, value, subtitle, color),
+            unsafe_allow_html=True,
+        )
     st.markdown("<br>", unsafe_allow_html=True)
 
     left, right = st.columns([1, 1])
@@ -767,12 +790,15 @@ elif nav == "Sentiment":
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     c = st.columns(4)
-    for col_, (l, v, s, cl) in zip(c, [
+    for col_, (label, value, subtitle, color) in zip(c, [
         ("Positive", f"{pct['Positive']:.1f}%", f"{counts['Positive']} reviews", COL["pos"]),
         ("Neutral", f"{pct['Neutral']:.1f}%", f"{counts['Neutral']} reviews", COL["neu"]),
         ("Negative", f"{pct['Negative']:.1f}%", f"{counts['Negative']} reviews", COL["neg"]),
         ("Avg Length", f"{df.length.mean():.0f}", "words / review", "#0f172a")]):
-        col_.markdown(metric_card(l, v, s, cl), unsafe_allow_html=True)
+        col_.markdown(
+            metric_card(label, value, subtitle, color),
+            unsafe_allow_html=True,
+        )
 
 # ===================== WORDS =====================
 elif nav == "Words":
@@ -867,7 +893,7 @@ elif nav == "Reviews":
         if rows.empty:
             st.caption("None in this category.")
         for _, r in rows.iterrows():
-            txt = (r["text"][:300] + "…") if len(r["text"]) > 300 else r["text"]
+            txt = escape_review_html(r["text"], max_length=300)
             st.markdown(
                 f'<div class="review-card" style="background:{bg};border-color:{border}">'
                 f'<div class="review-meta"><span>{r.sentiment} · polarity {r.polarity:.2f}</span>'

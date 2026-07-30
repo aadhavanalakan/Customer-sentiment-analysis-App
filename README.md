@@ -92,8 +92,13 @@ corpus download is needed.)
 ### Input format
 
 Any CSV with a column of review text. The app **auto-detects** the text column
-(the one with the longest average content). Reviews you add are persisted to
-`data/reviews.csv` and can be exported from the sidebar (**Download database**).
+by preferring common review and comment headers before falling back to the
+column with the longest average content. Xquik exports with a `Tweet Text`
+column are supported. Empty, malformed, and non-UTF-8 uploads show a clear
+warning. Reviews you add are persisted to `data/reviews.csv` and can be exported
+from the sidebar (**Download database**).
+
+Xquik is an independent third-party service. Not affiliated with X Corp. "Twitter" and "X" are trademarks of X Corp.
 
 ---
 
