@@ -22,12 +22,19 @@ import re
 from collections import Counter
 
 import pandas as pd
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
+from streamlit_option_menu import option_menu
 from textblob import TextBlob
 from wordcloud import WordCloud
-from streamlit_option_menu import option_menu
-from xquik_import import detect_review_text_column, prepare_reviews, read_review_csv
+
+from xquik_import import (
+    detect_review_text_column,
+    escape_review_html,
+    export_review_csv,
+    prepare_reviews,
+    read_review_csv,
+)
 
 # ============================================================================
 # 1. CONFIG
@@ -561,7 +568,10 @@ with st.sidebar:
             st.rerun()
         st.download_button(
             "⬇  Download database",
-            data=pd.DataFrame({"review": st.session_state.reviews}).to_csv(index=False),
+            data=export_review_csv(
+                pd.DataFrame({"review": st.session_state.reviews}),
+                text_column="review",
+            ),
             file_name="sentiment_database.csv",
             mime="text/csv",
         )
@@ -643,12 +653,16 @@ def show_reviews(heading, matched):
         return
     st.caption(f"{len(matched):,} review(s)")
     out = matched[["text", "sentiment", "polarity", "subjectivity"]]
-    st.download_button("⬇  Download these reviews (CSV)", out.to_csv(index=False),
-                       file_name="reviews_subset.csv", mime="text/csv",
-                       use_container_width=True)
+    st.download_button(
+        "⬇  Download these reviews (CSV)",
+        export_review_csv(out, text_column="text"),
+        file_name="reviews_subset.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
     st.markdown("---")
     for _, r in matched.sort_values("polarity").iterrows():
-        txt = (r["text"][:400] + "…") if len(r["text"]) > 400 else r["text"]
+        txt = escape_review_html(r["text"], max_length=400)
         bg = ("#ecfdf5" if r["sentiment"] == "Positive"
               else "#fff1f2" if r["sentiment"] == "Negative" else "#f8fafc")
         st.markdown(
@@ -879,7 +893,7 @@ elif nav == "Reviews":
         if rows.empty:
             st.caption("None in this category.")
         for _, r in rows.iterrows():
-            txt = (r["text"][:300] + "…") if len(r["text"]) > 300 else r["text"]
+            txt = escape_review_html(r["text"], max_length=300)
             st.markdown(
                 f'<div class="review-card" style="background:{bg};border-color:{border}">'
                 f'<div class="review-meta"><span>{r.sentiment} · polarity {r.polarity:.2f}</span>'

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from html import escape
 
 import pandas as pd
 
+_SPREADSHEET_FORMULA_PREFIXES = ("=", "+", "-", "@")
+_SPREADSHEET_CONTROL_PREFIXES = ("\t", "\r", "\n")
 TEXT_ALIASES = (
     "review",
     "reviews",
@@ -17,6 +20,31 @@ TEXT_ALIASES = (
     "tweet_text",
     "tweettext",
 )
+
+
+def escape_review_html(review_text: object, *, max_length: int) -> str:
+    """Truncate and encode review text before inserting it into HTML."""
+    text = str(review_text)
+    if len(text) > max_length:
+        text = f"{text[:max_length]}…"
+    return escape(text)
+
+
+def export_review_csv(raw_df: pd.DataFrame, *, text_column: str) -> str:
+    """Export reviews without leaving spreadsheet formulas executable."""
+    export_df = raw_df.copy()
+    export_df[text_column] = export_df[text_column].map(_neutralize_spreadsheet_formula)
+    return export_df.to_csv(index=False)
+
+
+def _neutralize_spreadsheet_formula(value: object) -> str:
+    text = str(value)
+    without_spaces = text.lstrip(" ")
+    if text.lstrip().startswith(
+        _SPREADSHEET_FORMULA_PREFIXES
+    ) or without_spaces.startswith(_SPREADSHEET_CONTROL_PREFIXES):
+        return f"'{text}"
+    return text
 
 
 def normalize_column_name(column_name: object) -> str:
@@ -60,14 +88,19 @@ def read_review_csv(source: object) -> pd.DataFrame:
         pd.errors.ParserError,
     ) as error:
         raise ValueError("CSV must be a non-empty, valid UTF-8 file.") from error
-    raw_df.columns = [str(column).strip() for column in raw_df.columns]
+    column_names = [str(column).strip() for column in raw_df.columns]
+    if len(column_names) != len(set(column_names)):
+        raise ValueError("CSV column names must be unique after trimming.")
+    raw_df.columns = column_names
     return raw_df
 
 
 def prepare_reviews(raw_df: pd.DataFrame) -> list[str]:
     text_column = detect_review_text_column(raw_df)
     if text_column is None:
-        raise ValueError("CSV must include a review, comment, text, or Tweet Text column.")
+        raise ValueError(
+            "CSV must include a review, comment, text, or Tweet Text column."
+        )
     reviews = raw_df[text_column].dropna().astype(str).str.strip()
     reviews = reviews[reviews != ""]
     if reviews.empty:

@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "A Streamlit dashboard for customer-review sentiment, emotion, keyword and phrase analytics, built as a layered, swappable NLP pipeline."
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Aadhavan Alakan", email = "aadhavanalakan97@gmail.com" }]
 keywords = ["streamlit", "nlp", "sentiment-analysis", "textblob", "dashboard", "mlops"]
 dependencies = [
